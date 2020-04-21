@@ -1,6 +1,7 @@
 package main
 
 import (
+	"alibaba-cloud-metrics-adapter/pkg/utils"
 	"flag"
 	"os"
 	"runtime"
@@ -9,7 +10,6 @@ import (
 	log "k8s.io/klog"
 
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/provider"
-	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
 )
 
 func main() {
@@ -24,9 +24,12 @@ func main() {
 
 	cl := flag.NewFlagSet("external-metrics", flag.ErrorHandling(0))
 	//log.InitFlags(cl)
-	cmd := &basecmd.AdapterBase{}
+	cmd := &utils.AlibabaMetricAdapter{}
 	cmd.Flags().AddGoFlagSet(cl)
 	cmd.Flags().Parse(os.Args)
+	if cmd.PrometheusServer!=""{
+		cmd.MakePromClient()
+	}
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -37,7 +40,7 @@ func main() {
 	}
 }
 
-func setupAlibabaCloudProvider(cmd *basecmd.AdapterBase) {
+func setupAlibabaCloudProvider(cmd *utils.AlibabaMetricAdapter) {
 
 	mapper, err := cmd.RESTMapper()
 	if err != nil {
@@ -57,3 +60,4 @@ func setupAlibabaCloudProvider(cmd *basecmd.AdapterBase) {
 	//cmd.WithCustomMetrics(metricProvider)
 	cmd.WithExternalMetrics(metricProvider)
 }
+
