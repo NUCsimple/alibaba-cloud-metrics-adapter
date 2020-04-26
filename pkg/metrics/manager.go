@@ -11,15 +11,17 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	log "k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+
 )
 
-var externalMetricsManager *ExternalMetricsManager
+var (
+	externalMetricsManager *ExternalMetricsManager
+)
 
 func init() {
 	externalMetricsManager = &ExternalMetricsManager{
 		metricsSource: make(map[p.ExternalMetricInfo]MetricSource),
 	}
-
 	// add metrics source
 	register(sls.NewSLSMetricSource())
 	register(slb.NewSLBMetricSource())
@@ -67,3 +69,4 @@ func (em *ExternalMetricsManager) GetExternalMetrics(namespace string, requireme
 
 	return nil, fmt.Errorf("The specific metric source %s is not found.\n", info.Metric)
 }
+

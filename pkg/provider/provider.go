@@ -26,11 +26,10 @@ import (
 type AlibabaCloudMetricsProvider struct {
 	mapper     apimeta.RESTMapper
 	kubeClient dynamic.Interface
-
 	// external metrics manager
 	eManager *metrics.ExternalMetricsManager
-
-	// todo custom metrics manager
+	// custom  metrics manager
+	//
 }
 
 func NewAlibabaCloudProvider(mapper apimeta.RESTMapper, dynamicClient dynamic.Interface) (p.MetricsProvider, error) {

@@ -16,7 +16,7 @@ func (cp *AlibabaCloudMetricsProvider) GetMetricByName(name types.NamespacedName
 // GetMetricBySelector fetches a particular metric for a set of objects matching
 // the given label selector.  The namespace will be empty if the metric is root-scoped.
 func (cp *AlibabaCloudMetricsProvider) GetMetricBySelector(namespace string, selector labels.Selector, info p.CustomMetricInfo) (*custom_metrics.MetricValueList, error) {
-	return nil, nil
+	return nil,nil
 }
 
 // ListAllMetrics provides a list of all available metrics at
@@ -24,5 +24,5 @@ func (cp *AlibabaCloudMetricsProvider) GetMetricBySelector(namespace string, sel
 // an error, so it is reccomended that implementors cache and
 // periodically update this list, instead of querying every time.
 func (cp *AlibabaCloudMetricsProvider) ListAllMetrics() []p.CustomMetricInfo {
-	return []p.CustomMetricInfo{}
+	return nil
 }
