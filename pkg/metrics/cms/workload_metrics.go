@@ -78,7 +78,6 @@ func (cs *CMSMetricSource) getCMSWorkLoadMetrics(namespace string, requires labe
 	if err != nil {
 		return values, err
 	}
-
 	if len(dataPoints) > 0 {
 		values = append(values, external_metrics.ExternalMetricValue{
 			MetricName: info.Metric,
@@ -123,6 +122,9 @@ func getCMSParams(namespace string, requirements labels.Requirements) (params *C
 	if params.ClusterId == "" || params.WorkloadType == "" || params.WorkloadName == "" {
 		return params, errors.New(fmt.Sprintf("%s %s %s must be provided", K8S_CLUSTER_ID, K8S_WORKLOAD_TYPE, K8S_WORKLOAD_NAME))
 	}
+	fmt.Println("params.ClusterId===>",params.ClusterId)
+	fmt.Println("params.WorkloadType===>",params.WorkloadType)
+	fmt.Println("params.WorkloadName====>",params.WorkloadName)
 
 	// avoid too short range of period
 	if params.Period < MIN_PERIOD {
@@ -158,6 +160,7 @@ func (cs *CMSMetricSource) getGroupIdByName(params *CMSMetricParams) (groupId in
 
 	if response.Success && response.Total == 1 {
 		groups := response.Resources.Resource
+		fmt.Println("groups[0].GroupId===>",groups[0].GroupId)
 		return groups[0].GroupId, err
 	}
 
@@ -177,7 +180,8 @@ func (cs *CMSMetricSource) getMetricListByGroupId(params *CMSMetricParams, group
 	request.Dimensions = dimensions
 
 	// time range
-	startTime := time.Now().Add(5 * time.Duration(params.Period) * time.Second).Format(utils.DEFAULT_TIME_FORMAT)
+	time.ParseDuration("-1h")
+	startTime := time.Now().Add(-5 * time.Duration(params.Period) * time.Second).Format(utils.DEFAULT_TIME_FORMAT)
 	endTime := time.Now().Format(utils.DEFAULT_TIME_FORMAT)
 
 	request.StartTime = startTime
@@ -198,16 +202,17 @@ func (cs *CMSMetricSource) getMetricListByGroupId(params *CMSMetricParams, group
 	}
 	if response.Success {
 		dataPoint := response.Datapoints
-		if dataPoint == "" {
+		if dataPoint == "[]" {
 			return values, fmt.Errorf("datapoint is empty %v", err)
 		}
 
 		var res []DataPoint
-
+		fmt.Println(response.Datapoints)
 		err := json.Unmarshal([]byte(dataPoint), &res)
 		if err != nil {
 			return values, fmt.Errorf("json unmarshal datapoint exception %v", err)
 		}
+		fmt.Println("res===>",res)
 		return res, nil
 	}
 	return values, err
@@ -224,7 +229,6 @@ func (cs *CMSMetricSource) Client() (client *cms.Client, err error) {
 		client, err = cms.NewClientWithStsToken(accessUserInfo.Region, accessUserInfo.AccessKeyId, accessUserInfo.AccessKeySecret, accessUserInfo.Token)
 	} else {
 		client, err = cms.NewClientWithAccessKey(accessUserInfo.Region, accessUserInfo.AccessKeyId, accessUserInfo.AccessKeySecret)
-
 	}
 	return client, err
 }
