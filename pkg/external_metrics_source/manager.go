@@ -5,7 +5,6 @@ import (
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/ahas"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/cms"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/prom"
-
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/slb"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/sls"
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -13,15 +12,24 @@ import (
 	"k8s.io/client-go/dynamic"
 	log "k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"time"
 )
 
+// RegisterMetricsSource add external metrics source
 func (em *ExternalMetricsManager) RegisterMetricsSource() {
-	// add external metrics source
 	em.register(sls.NewSLSMetricSource())
 	em.register(slb.NewSLBMetricSource())
 	em.register(cms.NewCMSMetricSource())
-	em.register(prom.NewPrometheusSource(em.kubeClient))
 	em.register(ahas.NewAHASSentinelMetricSource())
+
+	prometheusSource := prom.NewPrometheusSource(em.kubeClient)
+
+	go func() {
+		for {
+			em.register(prometheusSource)
+			time.Sleep(30 * time.Second)
+		}
+	}()
 }
 
 func NewExternalMetricsManager(client dynamic.Interface) *ExternalMetricsManager {
