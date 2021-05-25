@@ -15,42 +15,35 @@ import (
 )
 
 const (
-	PROMETHEUS_SERVER      = "prometheus.server"
 	PROMETHEUS_QUERY       = "prometheus.query"
 	PROMETHEUS_METRIC_NAME = "prometheus.metric.name"
 )
 
-func BelongPrometheusSource(hpa *autoscalingv2.HorizontalPodAutoscaler) bool {
+func HasSpecificAnnotation(hpa *autoscalingv2.HorizontalPodAutoscaler) bool {
 	var (
 		switch1 bool
 		switch2 bool
-		switch3 bool
 	)
+
 	for key, _ := range hpa.Annotations {
-		if key == PROMETHEUS_SERVER {
-			switch1 = true
-		}
 		if key == PROMETHEUS_QUERY {
 			switch2 = true
 		}
 		if key == PROMETHEUS_METRIC_NAME {
-			switch3 = true
+			switch1 = true
 		}
 	}
 
-	return switch1 && switch2 && switch3
+	return switch1 && switch2
 }
 
-func GetPrometheusMetricValue(hpa *autoscalingv2.HorizontalPodAutoscaler) (value external_metrics.ExternalMetricValue, err error) {
+func GetPrometheusValue(hpa *autoscalingv2.HorizontalPodAutoscaler, prometheusServer string) (value external_metrics.ExternalMetricValue, err error) {
 	var (
-		prometheusServer string
-		prometheusQuery  string
-		metricName       string
+		prometheusQuery string
+		metricName      string
 	)
+
 	for key, value := range hpa.Annotations {
-		if key == PROMETHEUS_SERVER {
-			prometheusServer = value
-		}
 		if key == PROMETHEUS_QUERY {
 			prometheusQuery = value
 		}
@@ -59,36 +52,20 @@ func GetPrometheusMetricValue(hpa *autoscalingv2.HorizontalPodAutoscaler) (value
 		}
 	}
 
-	promClient, err := api.NewClient(api.Config{
-		Address: prometheusServer,
-	})
-	if err != nil {
-		klog.Errorf("Error creating client: %v", err)
-		return value, err
-	}
-
-	v1api := v1.NewAPI(promClient)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	//TODO
-	klog.Infof("query is %v", prometheusQuery)
-	result, warnings, err := v1api.Query(ctx, prometheusQuery, time.Now())
-	if err != nil {
-		klog.Errorf("Error querying Prometheus: %v", err)
-		return value, err
+	result, warnings, err := Query(prometheusServer, prometheusQuery)
+	if err != nil || result == nil {
+		return value, errors.New("prometheus response is err or empty")
 	}
 
 	if len(warnings) > 0 {
-		klog.Errorf("Warnings: %v", warnings)
-		return value, errors.New("response include warning")
+		return value, errors.New("prometheus response has warning")
 	}
 
 	switch result.Type() {
 	case model.ValVector:
 		samples := result.(model.Vector)
 		if len(samples) == 0 {
-			return value, errors.New("")
+			return value, errors.New("vector value is empty")
 		}
 		sampleValue := samples[0].Value
 		value = external_metrics.ExternalMetricValue{
@@ -107,4 +84,27 @@ func GetPrometheusMetricValue(hpa *autoscalingv2.HorizontalPodAutoscaler) (value
 	}
 
 	return value, nil
+}
+
+func Query(prometheusServer, prometheusQuery string) (model.Value, v1.Warnings, error) {
+
+	promClient, err := api.NewClient(api.Config{
+		Address: prometheusServer,
+	})
+	if err != nil {
+		klog.Errorf("new prometheus client err: %v", err)
+		return nil, nil, err
+	}
+
+	v1api := v1.NewAPI(promClient)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	result, warnings, err := v1api.Query(ctx, prometheusQuery, time.Now())
+	if err != nil {
+		klog.Errorf("query prometheus %v err: %v", prometheusServer, err)
+		return nil, nil, err
+	}
+
+	return result, warnings, nil
 }

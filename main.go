@@ -46,20 +46,11 @@ type AlibabaMetricsAdapter struct {
 }
 
 func makeAlibabaCloudProvider(cmd *AlibabaMetricsAdapter) (provider.ExternalMetricsProvider, error) {
-	mapper, err := cmd.RESTMapper()
-	if err != nil {
-		return nil, fmt.Errorf("unable to construct discovery REST mapper: %v", err)
+	if cmd.PrometheusURL == "" {
+		klog.Infof("prometheus url is empty")
 	}
 
-	dynamicClient, err := cmd.DynamicClient()
-	if err != nil {
-		return nil, fmt.Errorf("unable to construct dynamic k8s client: %v", err)
-	}
-
-	alibabaProvider, err := alibaba_cloud_provider.NewAlibabaCloudProvider(mapper, dynamicClient)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to setup Alibaba Cloud metrics provider: %v", err)
-	}
+	alibabaProvider := alibaba_cloud_provider.NewAlibabaCloudProvider(cmd.PrometheusURL)
 
 	// TODO custom metrics will be supported later after multi custom adapter support.
 	//cmd.WithCustomMetrics(metricProvider)

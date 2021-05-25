@@ -3,33 +3,30 @@ package prom
 import (
 	"fmt"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/kubernetes"
-	"github.com/emirpasic/gods/sets/hashset"
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kubewatch "k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 	"time"
 )
 
 type externalMetric struct {
-	info   p.ExternalMetricInfo
 	labels map[string]string
 	value  external_metrics.ExternalMetricValue
 }
 
 type prometheusSource struct {
-	kubeClient dynamic.Interface
-	metricList *hashset.Set
+	prometheusUrl string
+	metricList    map[string]*externalMetric
 }
 
-func NewPrometheusSource(client dynamic.Interface) *prometheusSource {
+func NewPrometheusSource(url string) *prometheusSource {
 	ps := &prometheusSource{
-		kubeClient: client,
-		metricList: hashset.New()}
+		prometheusUrl: url,
+		metricList:    make(map[string]*externalMetric)}
 
 	go ps.MonitorHPAs()
 
@@ -39,38 +36,39 @@ func NewPrometheusSource(client dynamic.Interface) *prometheusSource {
 func (prom *prometheusSource) GetExternalMetricInfoList() []p.ExternalMetricInfo {
 	metricInfoList := make([]p.ExternalMetricInfo, 0)
 
-	for _, metric := range prom.metricList.Values() {
-		//TODO log
-		klog.Infof("prom metric is %v", metric)
-		metricInfoList = append(metricInfoList, metric.(*externalMetric).info)
+	for metric, _ := range prom.metricList {
+		metricInfo := p.ExternalMetricInfo{
+			Metric: metric,
+		}
+		metricInfoList = append(metricInfoList, metricInfo)
 	}
 
 	return metricInfoList
 }
 
-func (prom *prometheusSource) AddExternalMetric(metric *externalMetric) {
-	klog.Infof("metric %s is registered as an external metric. ", metric.info)
-	prom.metricList.Add(metric)
+func (prom *prometheusSource) AddExternalMetric(metricName string, metric *externalMetric) {
+	if _, ok := prom.metricList[metricName]; ok {
+		klog.Warningf("metric %s has been registered as an external metric. ", metricName)
+	}
+
+	klog.Infof("metric %s is registered as an external metric. ", metricName)
+	prom.metricList[metricName] = metric
 }
 
-func (prom *prometheusSource) DeleteExternalMetric(metric *externalMetric) {
-	klog.Infof("metric %s is deleted from external metric list. ", metric.info)
-	prom.metricList.Remove(metric)
+func (prom *prometheusSource) DeleteExternalMetric(metricName string) {
+	klog.Infof("metric %s is delete from external metric list. ", metricName)
+	delete(prom.metricList, metricName)
 }
 
 func (prom *prometheusSource) GetExternalMetric(info p.ExternalMetricInfo, _ string, _ labels.Requirements) (values []external_metrics.ExternalMetricValue, err error) {
-	for _, metric := range prom.metricList.Values() {
-		//TODO log
-		klog.Infof("prom metric is %v", metric)
-
-		if metric.(*externalMetric).info == info {
-			//TODO log
-			klog.Infof("metric %v is in the external metric list.", metric)
-			values = append(values, metric.(*externalMetric).value)
+	for metric, _ := range prom.metricList {
+		if metric == info.Metric {
+			values = append(values, prom.metricList[metric].value)
 			return values, nil
 		}
 	}
-	return nil, fmt.Errorf("not found metric %s from external metric list", info.Metric)
+
+	return nil, fmt.Errorf("not found metric %s from metric list", info.Metric)
 }
 
 func (prom *prometheusSource) MonitorHPAs() {
@@ -110,30 +108,24 @@ func (prom *prometheusSource) MonitorHPAs() {
 				if hpa, ok := watchUpdate.Object.(*autoscalingv2.HorizontalPodAutoscaler); ok {
 					switch watchUpdate.Type {
 					case kubewatch.Added, kubewatch.Modified:
-						if kubernetes.BelongPrometheusSource(hpa) {
+						if kubernetes.HasSpecificAnnotation(hpa) {
 							metric := &externalMetric{}
-							metricValue, err := kubernetes.GetPrometheusMetricValue(hpa)
+							metricValue, err := kubernetes.GetPrometheusValue(hpa, prom.prometheusUrl)
 							if err != nil {
-								klog.Errorf("get metric %s value from prometheus server err: %v", metricValue.MetricName, err)
-							}
-							metric.info = p.ExternalMetricInfo{
-								Metric: metricValue.MetricName,
+								klog.Errorf("failed to get value from prometheus server: %v", err)
+								continue
 							}
 							metric.value = metricValue
-							prom.AddExternalMetric(metric)
+							prom.AddExternalMetric(metricValue.MetricName, metric)
 						}
 					case kubewatch.Deleted:
-						if kubernetes.BelongPrometheusSource(hpa) {
-							metric := &externalMetric{}
-							metricValue, err := kubernetes.GetPrometheusMetricValue(hpa)
+						if kubernetes.HasSpecificAnnotation(hpa) {
+							metricValue, err := kubernetes.GetPrometheusValue(hpa, prom.prometheusUrl)
 							if err != nil {
 								klog.Errorf("get metric %s value from prometheus server err: %v", metricValue.MetricName, err)
+								continue
 							}
-							metric.info = p.ExternalMetricInfo{
-								Metric: metricValue.MetricName,
-							}
-							metric.value = metricValue
-							prom.DeleteExternalMetric(metric)
+							prom.DeleteExternalMetric(metricValue.MetricName)
 						}
 					default:
 						klog.Warningf("Unknown watchUpdate.Type: %#v", watchUpdate.Type)

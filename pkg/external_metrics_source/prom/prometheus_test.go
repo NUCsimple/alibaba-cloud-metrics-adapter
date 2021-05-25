@@ -1,7 +1,6 @@
 package prom
 
 import (
-	"github.com/emirpasic/gods/sets/hashset"
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
@@ -10,15 +9,21 @@ import (
 )
 
 func TestPrometheusSource_AddExternalMetric(t *testing.T) {
-	source := &prometheusSource{kubeClient: nil, metricList: hashset.New()}
+	source := &prometheusSource{
+		prometheusUrl: "http://localhost:9090",
+		metricList:    make(map[string]*externalMetric),
+	}
+
+	testLabels := make(map[string]string)
+	testLabels["foo"] = "bar"
 
 	t.Run("Register external metric for the prometheus", func(t *testing.T) {
 		testMetric := &externalMetric{
-			info: p.ExternalMetricInfo{Metric: "test-metrics"},
+			labels: testLabels,
 		}
 
-		source.AddExternalMetric(testMetric)
-		if source.metricList.Contains(testMetric) {
+		source.AddExternalMetric("test-metric", testMetric)
+		if _, ok := source.metricList["test-metric"]; ok {
 			t.Log("Verify passed")
 			return
 		}
@@ -27,16 +32,21 @@ func TestPrometheusSource_AddExternalMetric(t *testing.T) {
 }
 
 func TestPrometheusSource_DeleteExternalMetric(t *testing.T) {
-	source := &prometheusSource{kubeClient: nil, metricList: hashset.New()}
+	source := &prometheusSource{
+		prometheusUrl: "http://localhost:9090",
+		metricList:    make(map[string]*externalMetric),
+	}
+	testLabels := make(map[string]string)
+	testLabels["foo"] = "bar"
 
 	t.Run("Delete external metric for the prometheus", func(t *testing.T) {
 		testMetric := &externalMetric{
-			info: p.ExternalMetricInfo{Metric: "test-metrics"},
+			labels: testLabels,
 		}
 
-		source.AddExternalMetric(testMetric)
-		source.DeleteExternalMetric(testMetric)
-		if !source.metricList.Contains(testMetric) {
+		source.AddExternalMetric("test-metric", testMetric)
+		source.DeleteExternalMetric("test-metric")
+		if _, ok := source.metricList["test-metric"]; !ok {
 			t.Log("Verify passed")
 			return
 		}
@@ -45,15 +55,23 @@ func TestPrometheusSource_DeleteExternalMetric(t *testing.T) {
 }
 
 func TestPrometheusSource_GetExternalMetricInfoList(t *testing.T) {
-	source := &prometheusSource{kubeClient: nil, metricList: hashset.New()}
+	source := &prometheusSource{
+		prometheusUrl: "http://localhost:9090",
+		metricList:    make(map[string]*externalMetric),
+	}
+	testLabels := make(map[string]string)
+	testLabels["foo"] = "bar"
 
 	t.Run("Get external metric list", func(t *testing.T) {
 		testMetric := &externalMetric{
-			info: p.ExternalMetricInfo{Metric: "test-metrics"},
+			labels: testLabels,
 		}
-		want := p.ExternalMetricInfo{Metric: "test-metrics"}
-		source.AddExternalMetric(testMetric)
 
+		want := p.ExternalMetricInfo{
+			Metric: "test-metric",
+		}
+
+		source.AddExternalMetric("test-metric", testMetric)
 		got := source.GetExternalMetricInfoList()[0]
 		if got != want {
 			t.Error("test metric has been registered external metric.")
@@ -63,13 +81,15 @@ func TestPrometheusSource_GetExternalMetricInfoList(t *testing.T) {
 }
 
 func TestPrometheusSource_GetExternalMetric(t *testing.T) {
-	source := &prometheusSource{kubeClient: nil, metricList: hashset.New()}
+	source := &prometheusSource{
+		prometheusUrl: "http://localhost:9090",
+		metricList:    make(map[string]*externalMetric),
+	}
 
 	t.Run("Get external metric", func(t *testing.T) {
 		labelRequirements := labels.Requirements{}
 
 		testMetric := &externalMetric{
-			info: p.ExternalMetricInfo{Metric: "test-metrics"},
 			value: external_metrics.ExternalMetricValue{
 				MetricName: "test-metrics",
 				MetricLabels: map[string]string{
@@ -78,9 +98,9 @@ func TestPrometheusSource_GetExternalMetric(t *testing.T) {
 				Value: *resource.NewQuantity(42, resource.DecimalSI),
 			},
 		}
-		metricInfo := p.ExternalMetricInfo{Metric: "test-metrics"}
+		metricInfo := p.ExternalMetricInfo{Metric: "test-metric"}
 
-		source.AddExternalMetric(testMetric)
+		source.AddExternalMetric("test-metric", testMetric)
 		value, err := source.GetExternalMetric(metricInfo, "default", labelRequirements)
 		if err != nil {
 			t.Error(err)

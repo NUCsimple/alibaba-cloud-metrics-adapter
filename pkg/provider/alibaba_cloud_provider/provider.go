@@ -20,31 +20,24 @@ import (
 	"errors"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source"
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/dynamic"
 	log "k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
 
 type AlibabaCloudMetricsProvider struct {
-	mapper     apimeta.RESTMapper
-	kubeClient dynamic.Interface
-
-	// external metrics manager
+	// eManager is used by manage all metric source
 	eManager *external_metrics_source.ExternalMetricsManager
 }
 
 // NewAlibabaCloudProvider return a alibabaCloudProvider
-func NewAlibabaCloudProvider(mapper apimeta.RESTMapper, dynamicClient dynamic.Interface) (p.ExternalMetricsProvider, error) {
-	em := external_metrics_source.NewExternalMetricsManager(dynamicClient)
+func NewAlibabaCloudProvider(prometheusUrl string) p.ExternalMetricsProvider {
+	em := external_metrics_source.NewExternalMetricsManager(prometheusUrl)
 	em.RegisterMetricsSource()
 
 	return &AlibabaCloudMetricsProvider{
-		mapper:     mapper,
-		kubeClient: dynamicClient,
-		eManager:   em,
-	}, nil
+		eManager: em,
+	}
 }
 
 // GetExternalMetric return metrics with specific labels

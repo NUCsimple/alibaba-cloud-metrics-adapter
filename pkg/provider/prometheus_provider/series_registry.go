@@ -28,7 +28,7 @@ type SeriesRegistry interface {
 	SetSeries(series [][]prometheus.Series, namers []naming2.MetricNamer) error
 	// ListAllMetrics lists all metrics known to this registry
 	ListAllMetrics() []provider.CustomMetricInfo
-	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
+	// QueryForMetric SeriesForMetric looks up the minimum required series information to make a query for the given metric
 	// against the given resource (namespace may be empty for non-namespaced resources)
 	QueryForMetric(info provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, resourceNames ...string) (query prometheus.Selector, found bool)
 	// MatchValuesToNames matches result values to resource names for the given metric and value set

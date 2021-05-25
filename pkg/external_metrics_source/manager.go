@@ -2,6 +2,8 @@ package external_metrics_source
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/ahas"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/cms"
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/prom"
@@ -9,11 +11,10 @@ import (
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/external_metrics_source/sls"
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/dynamic"
-	log "k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/external_metrics"
-	"time"
 )
+
+const DefaultInterval = 30 * time.Second
 
 // RegisterMetricsSource add external metrics source
 func (em *ExternalMetricsManager) RegisterMetricsSource() {
@@ -21,21 +22,20 @@ func (em *ExternalMetricsManager) RegisterMetricsSource() {
 	em.register(slb.NewSLBMetricSource())
 	em.register(cms.NewCMSMetricSource())
 	em.register(ahas.NewAHASSentinelMetricSource())
-
-	prometheusSource := prom.NewPrometheusSource(em.kubeClient)
+	prometheusSource := prom.NewPrometheusSource(em.prometheusUrl)
 
 	go func() {
 		for {
 			em.register(prometheusSource)
-			time.Sleep(30 * time.Second)
+			time.Sleep(DefaultInterval)
 		}
 	}()
 }
 
-func NewExternalMetricsManager(client dynamic.Interface) *ExternalMetricsManager {
+func NewExternalMetricsManager(prometheusUrl string) *ExternalMetricsManager {
 	return &ExternalMetricsManager{
+		prometheusUrl: prometheusUrl,
 		metricsSource: make(map[p.ExternalMetricInfo]MetricSource),
-		kubeClient:    client,
 	}
 }
 
@@ -49,15 +49,15 @@ type MetricSource interface {
 }
 
 type ExternalMetricsManager struct {
-	kubeClient    dynamic.Interface
+	prometheusUrl string
 	metricsSource map[p.ExternalMetricInfo]MetricSource
 }
 
 func (em *ExternalMetricsManager) AddMetricsSource(m MetricSource) {
 	metricInfoList := m.GetExternalMetricInfoList()
-	for _, p := range metricInfoList {
-		log.Infof("Register metric: %v to external metrics manager\n", p)
-		em.metricsSource[p] = m
+
+	for _, metricInfo := range metricInfoList {
+		em.metricsSource[metricInfo] = m
 	}
 }
 
@@ -75,5 +75,5 @@ func (em *ExternalMetricsManager) GetExternalMetrics(namespace string, requireme
 		return source.GetExternalMetric(info, namespace, requirements)
 	}
 
-	return nil, fmt.Errorf("The specific metric %s is not found.\n", info.Metric)
+	return nil, fmt.Errorf("metric %s is not found", info.Metric)
 }
