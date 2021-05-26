@@ -51,6 +51,10 @@ func (s *AHASSentinelMetricSource) GetExternalMetricInfoList() []provider.Extern
 	return metricInfoList
 }
 
+func (s *AHASSentinelMetricSource) Name() string {
+	return "ahas"
+}
+
 func (s *AHASSentinelMetricSource) GetExternalMetric(info provider.ExternalMetricInfo, namespace string, requirements labels.Requirements) (values []external_metrics.ExternalMetricValue, err error) {
 	params, err := getAhasSentinelParams(requirements, namespace)
 	if err != nil {

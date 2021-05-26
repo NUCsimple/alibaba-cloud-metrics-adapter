@@ -76,6 +76,5 @@ func (ep *AlibabaCloudMetricsProvider) ListAllExternalMetrics() []p.ExternalMetr
 		})
 	}
 
-	log.Infof("external metric total %v", len(externalMetricsInfo))
 	return externalMetricsInfo
 }

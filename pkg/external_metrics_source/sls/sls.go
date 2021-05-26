@@ -76,6 +76,10 @@ func (ss *SLSMetricSource) GetExternalMetric(info p.ExternalMetricInfo, namespac
 	return values, err
 }
 
+func (ss *SLSMetricSource) Name() string {
+	return "sls"
+}
+
 // create client with specific project
 func (ss *SLSMetricSource) Client(internal bool) (client sls.ClientInterface, err error) {
 

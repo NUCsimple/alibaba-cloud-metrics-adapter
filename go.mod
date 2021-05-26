@@ -7,6 +7,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.258
 	github.com/aliyun/aliyun-log-go-sdk v0.1.10
 	github.com/denverdino/aliyungo v0.0.0-20200609114633-3b95b3216337
+	github.com/emirpasic/gods v1.12.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20200323093244-5046ce1afe6b
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

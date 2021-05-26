@@ -155,6 +155,10 @@ type SLBParams struct {
 	Period int
 }
 
+func (sms *SLBMetricSource) Name() string {
+	return "slb"
+}
+
 //get the slb specific metric values
 func (sms *SLBMetricSource) getSLBMetrics(namespace, metric, externalMetric string, requirements labels.Requirements) (values []external_metrics.ExternalMetricValue, err error) {
 	namespace = "acs_slb_dashboard"

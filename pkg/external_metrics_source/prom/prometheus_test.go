@@ -9,21 +9,21 @@ import (
 )
 
 func TestPrometheusSource_AddExternalMetric(t *testing.T) {
-	source := &prometheusSource{
-		prometheusUrl: "http://localhost:9090",
-		metricList:    make(map[string]*externalMetric),
+	source := &PrometheusSource{
+		PrometheusUrl: "http://localhost:9090",
+		MetricList:    make(map[string]*ExternalMetric),
 	}
 
 	testLabels := make(map[string]string)
 	testLabels["foo"] = "bar"
 
 	t.Run("Register external metric for the prometheus", func(t *testing.T) {
-		testMetric := &externalMetric{
-			labels: testLabels,
+		testMetric := &ExternalMetric{
+			Labels: testLabels,
 		}
 
 		source.AddExternalMetric("test-metric", testMetric)
-		if _, ok := source.metricList["test-metric"]; ok {
+		if _, ok := source.MetricList["test-metric"]; ok {
 			t.Log("Verify passed")
 			return
 		}
@@ -32,21 +32,22 @@ func TestPrometheusSource_AddExternalMetric(t *testing.T) {
 }
 
 func TestPrometheusSource_DeleteExternalMetric(t *testing.T) {
-	source := &prometheusSource{
-		prometheusUrl: "http://localhost:9090",
-		metricList:    make(map[string]*externalMetric),
+	source := &PrometheusSource{
+		PrometheusUrl: "http://localhost:9090",
+		MetricList:    make(map[string]*ExternalMetric),
 	}
 	testLabels := make(map[string]string)
 	testLabels["foo"] = "bar"
 
 	t.Run("Delete external metric for the prometheus", func(t *testing.T) {
-		testMetric := &externalMetric{
-			labels: testLabels,
+		testMetric := &ExternalMetric{
+			Labels: testLabels,
 		}
 
 		source.AddExternalMetric("test-metric", testMetric)
 		source.DeleteExternalMetric("test-metric")
-		if _, ok := source.metricList["test-metric"]; !ok {
+		t.Log(source.GetExternalMetricInfoList())
+		if _, ok := source.MetricList["test-metric"]; !ok {
 			t.Log("Verify passed")
 			return
 		}
@@ -55,16 +56,16 @@ func TestPrometheusSource_DeleteExternalMetric(t *testing.T) {
 }
 
 func TestPrometheusSource_GetExternalMetricInfoList(t *testing.T) {
-	source := &prometheusSource{
-		prometheusUrl: "http://localhost:9090",
-		metricList:    make(map[string]*externalMetric),
+	source := &PrometheusSource{
+		PrometheusUrl: "http://localhost:9090",
+		MetricList:    make(map[string]*ExternalMetric),
 	}
 	testLabels := make(map[string]string)
 	testLabels["foo"] = "bar"
 
 	t.Run("Get external metric list", func(t *testing.T) {
-		testMetric := &externalMetric{
-			labels: testLabels,
+		testMetric := &ExternalMetric{
+			Labels: testLabels,
 		}
 
 		want := p.ExternalMetricInfo{
@@ -81,16 +82,16 @@ func TestPrometheusSource_GetExternalMetricInfoList(t *testing.T) {
 }
 
 func TestPrometheusSource_GetExternalMetric(t *testing.T) {
-	source := &prometheusSource{
-		prometheusUrl: "http://localhost:9090",
-		metricList:    make(map[string]*externalMetric),
+	source := &PrometheusSource{
+		PrometheusUrl: "http://localhost:9090",
+		MetricList:    make(map[string]*ExternalMetric),
 	}
 
 	t.Run("Get external metric", func(t *testing.T) {
 		labelRequirements := labels.Requirements{}
 
-		testMetric := &externalMetric{
-			value: external_metrics.ExternalMetricValue{
+		testMetric := &ExternalMetric{
+			Value: external_metrics.ExternalMetricValue{
 				MetricName: "test-metrics",
 				MetricLabels: map[string]string{
 					"foo": "bar",

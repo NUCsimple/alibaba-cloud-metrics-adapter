@@ -50,6 +50,10 @@ func (cs *CMSMetricSource) GetExternalMetricInfoList() []p.ExternalMetricInfo {
 	return metricInfoList
 }
 
+func (cs *CMSMetricSource) Name() string {
+	return "cms"
+}
+
 func (cs *CMSMetricSource) GetExternalMetric(info p.ExternalMetricInfo, namespace string, requirements labels.Requirements) (values []external_metrics.ExternalMetricValue, err error) {
 	switch info.Metric {
 	case K8S_WORKLOAD_CPUUTIL:

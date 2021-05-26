@@ -25,7 +25,7 @@ func HasSpecificAnnotation(hpa *autoscalingv2.HorizontalPodAutoscaler) bool {
 		switch2 bool
 	)
 
-	for key, _ := range hpa.Annotations {
+	for key := range hpa.Annotations {
 		if key == PROMETHEUS_QUERY {
 			switch2 = true
 		}
