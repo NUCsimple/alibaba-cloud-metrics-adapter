@@ -4,7 +4,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: prometheus-hpa
   annotations:
-    "prometheus.query": "up"
+    "prometheus.query": "rate(http_requests_total[1m])"
     "prometheus.metric.name": "http_requests_per_second"
 spec:
   scaleTargetRef:
