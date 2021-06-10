@@ -184,7 +184,7 @@ func (sms *SLBMetricSource) getSLBMetrics(namespace, metric, externalMetric stri
 		log.Errorf("Failed to get slb response,err: %v", err)
 		return values, err
 	}
-	log.V(3).Infof("response state is %s", response.Code)
+	log.V(3).Infof("response code is %s,msg is %v", response.Code, response.Message)
 
 	metricValue, err := getMetricFromDataPoints(response.Datapoints)
 	if err != nil {
