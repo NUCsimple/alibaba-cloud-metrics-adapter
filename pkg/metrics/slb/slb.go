@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
-
 	"github.com/AliyunContainerService/alibaba-cloud-metrics-adapter/pkg/utils"
+	"strings"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -185,6 +184,7 @@ func (sms *SLBMetricSource) getSLBMetrics(namespace, metric, externalMetric stri
 		log.Errorf("Failed to get slb response,err: %v", err)
 		return values, err
 	}
+	log.V(3).Infof("response state is %s", response.Code)
 
 	metricValue, err := getMetricFromDataPoints(response.Datapoints)
 	if err != nil {
