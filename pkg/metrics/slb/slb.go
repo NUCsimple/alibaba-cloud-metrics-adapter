@@ -12,13 +12,11 @@ import (
 	p "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"strconv"
-	"time"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	log "k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"strconv"
 )
 
 const (
@@ -174,18 +172,7 @@ func (sms *SLBMetricSource) getSLBMetrics(namespace, metric, externalMetric stri
 	request.Scheme = "https"
 	request.Namespace = namespace
 	request.MetricName = metric
-
-	//time range
-	endTime := time.Now().Add(-2 * time.Minute)
-	startTime := endTime.Add(-1 * time.Duration(params.Period) * time.Second)
-	//make ensure that the starttime minus Endtime is greater than period.
-	err = utils.JudgeWithPeriod(startTime, endTime, params.Period)
-	if err != nil {
-		return values, err
-	}
-
-	request.StartTime = startTime.Format(utils.DEFAULT_TIME_FORMAT)
-	request.EndTime = endTime.Format(utils.DEFAULT_TIME_FORMAT)
+	request.Period = strconv.Itoa(params.Period)
 
 	dimensions, err := createDimensions(params.InstanceId, params.Port)
 	if err != nil {
